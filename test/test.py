@@ -87,6 +87,54 @@ def test_access_change_event(device):
     device.run_ssh('snap run onlyoffice.access-change > {0}/access-change.log'.format(TMP_DIR))
 
 
+def test_no_redirect_loop_when_2fa_required(device, domain, app_domain, device_user, device_password):
+    auth_domain = 'auth.{0}'.format(domain)
+
+    response = device.session.post(
+        'https://{0}/rest/settings/2fa'.format(domain),
+        json={'enabled': True}, verify=False, timeout=120,
+    )
+    assert response.status_code == 200, 'enable 2fa: {0}'.format(response.text)
+
+    try:
+        wait_for_rest(requests.session(), 'https://{0}/api/health'.format(auth_domain), 200, 60)
+
+        s = requests.session()
+        s.verify = False
+        first = s.post(
+            'https://{0}/api/firstfactor'.format(auth_domain),
+            headers={'Content-Type': 'application/json'},
+            json={
+                'username': device_user,
+                'password': device_password,
+                'keepMeLoggedIn': False,
+                'requestMethod': 'GET',
+                'targetURL': 'https://{0}/'.format(app_domain),
+            },
+            timeout=60,
+        )
+        assert first.status_code == 200, 'firstfactor: {0}'.format(first.text)
+        assert any(c.name == 'authelia_session' for c in s.cookies), 'no authelia_session cookie set'
+
+        r = s.get('https://{0}/'.format(app_domain), timeout=60, allow_redirects=False)
+
+        if r.status_code in (301, 302, 303, 307, 308):
+            location = r.headers.get('Location', '')
+            loop_trigger = 'https://{0}/?rd='.format(auth_domain)
+            assert not (location.startswith(loop_trigger) and 'rm=GET' in location), (
+                'app responded with the Authelia AuthRequest redirect that loops with 2FA-required policy: {0}'.format(location)
+            )
+        else:
+            assert r.status_code == 200, (
+                'expected 200 or non-loop redirect, got {0}'.format(r.status_code)
+            )
+    finally:
+        device.session.post(
+            'https://{0}/rest/settings/2fa'.format(domain),
+            json={'enabled': False}, verify=False, timeout=120,
+        )
+
+
 def test_remove(device, app):
     response = device.app_remove(app)
     assert response.status_code == 200, response.text
