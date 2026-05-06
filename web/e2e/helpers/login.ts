@@ -10,6 +10,9 @@ export async function login(page: Page) {
   await username.fill(deviceUser)
   await page.getByRole('textbox', { name: /password/i }).fill(devicePassword)
   await page.getByRole('button', { name: /sign in/i }).click()
+  try {
+    await page.getByRole('button', { name: /^accept$/i }).click({ timeout: 8_000 })
+  } catch {}
   await expect(page.getByTestId('brand')).toBeVisible({ timeout: 30_000 })
 }
 
