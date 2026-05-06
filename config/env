@@ -5,3 +5,5 @@ export NODE_CONFIG_DIR={{ .AppDir }}/documentserver/var-www/onlyoffice/documents
 export APPLICATION_NAME=onlyoffice
 export NODE_DISABLE_COLORS=1
 export ONLYOFFICE_BASE_URL={{ .Url }}
+export ONLYOFFICE_OIDC_ISSUER={{ .AuthUrl }}
+export ONLYOFFICE_OIDC_CLIENT_ID={{ .OIDCClientID }}

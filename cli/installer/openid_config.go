@@ -1,4 +1,4 @@
 package installer
 
-const AppOIDCRedirect = "/oauth2/callback"
+const AppOIDCRedirect = "/oidc/callback"
 const TokenEndpointAuthMethod = "client_secret_basic"

@@ -24,20 +24,23 @@ const (
 )
 
 type Variables struct {
-	Domain         string
-	Url            string
-	DataDir        string
-	AppDir         string
-	CommonDir      string
-	DatabaseDir    string
-	JwtSecret      string
-	DbName         string
-	DbUser         string
-	DbPassword     string
-	AuthUrl        string
-	RabbitPort     int
-	RabbitDistPort int
-	RabbitEpmdPort int
+	Domain           string
+	Url              string
+	DataDir          string
+	AppDir           string
+	CommonDir        string
+	DatabaseDir      string
+	JwtSecret        string
+	DbName           string
+	DbUser           string
+	DbPassword       string
+	AuthUrl          string
+	OIDCClientID     string
+	OIDCClientSecret string
+	OIDCRedirect     string
+	RabbitPort       int
+	RabbitDistPort   int
+	RabbitEpmdPort   int
 }
 
 type Installer struct {
@@ -189,6 +192,14 @@ func (i *Installer) JwtSecret() (string, error) {
 	return getOrCreateSecret(path.Join(DataDir, "secret", "jwt"))
 }
 
+func (i *Installer) OIDCClientSecret() (string, error) {
+	data, err := os.ReadFile(path.Join(DataDir, "secret", "oidc-client-secret"))
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
 func (i *Installer) StorageDir() (string, error) {
 	return i.platformClient.InitStorage(App, App)
 }
@@ -239,8 +250,12 @@ func (i *Installer) UpdateConfigs() error {
 		return err
 	}
 
-	if _, err := i.platformClient.RegisterOIDCClient(App, AppOIDCRedirect, false, TokenEndpointAuthMethod); err != nil {
-		i.logger.Warn("OIDC client registration failed; continuing", zap.Error(err))
+	oidcSecret, err := i.platformClient.RegisterOIDCClient(App, AppOIDCRedirect, false, TokenEndpointAuthMethod)
+	if err != nil {
+		return fmt.Errorf("OIDC client registration: %w", err)
+	}
+	if err := os.WriteFile(path.Join(DataDir, "secret", "oidc-client-secret"), []byte(oidcSecret), 0600); err != nil {
+		return fmt.Errorf("persist OIDC client secret: %w", err)
 	}
 
 	rabbitPort, err := getOrCreatePort(path.Join(DataDir, "secret", "rabbit-port"))
@@ -257,20 +272,23 @@ func (i *Installer) UpdateConfigs() error {
 	}
 
 	variables := Variables{
-		Domain:         domain,
-		Url:            url,
-		DataDir:        DataDir,
-		AppDir:         AppDir,
-		CommonDir:      CommonDir,
-		DatabaseDir:    i.database.DatabaseDir(),
-		JwtSecret:      jwtSecret,
-		DbName:         App,
-		DbUser:         App,
-		DbPassword:     App,
-		AuthUrl:        authUrl,
-		RabbitPort:     rabbitPort,
-		RabbitDistPort: rabbitDistPort,
-		RabbitEpmdPort: rabbitEpmdPort,
+		Domain:           domain,
+		Url:              url,
+		DataDir:          DataDir,
+		AppDir:           AppDir,
+		CommonDir:        CommonDir,
+		DatabaseDir:      i.database.DatabaseDir(),
+		JwtSecret:        jwtSecret,
+		DbName:           App,
+		DbUser:           App,
+		DbPassword:       App,
+		AuthUrl:          authUrl,
+		OIDCClientID:     App,
+		OIDCClientSecret: oidcSecret,
+		OIDCRedirect:     url + AppOIDCRedirect,
+		RabbitPort:       rabbitPort,
+		RabbitDistPort:   rabbitDistPort,
+		RabbitEpmdPort:   rabbitEpmdPort,
 	}
 
 	if err := config.Generate(

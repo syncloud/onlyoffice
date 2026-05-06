@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"hooks/installer"
 	"hooks/web"
@@ -23,14 +24,26 @@ func main() {
 			if err != nil {
 				return err
 			}
+			oidcSecret, err := inst.OIDCClientSecret()
+			if err != nil {
+				return err
+			}
+			baseURL := os.Getenv("ONLYOFFICE_BASE_URL")
 			cfg := web.Config{
 				Listen:      path.Join(installer.DataDir, "run", "web.sock"),
-				BaseURL:     os.Getenv("ONLYOFFICE_BASE_URL"),
+				BaseURL:     baseURL,
 				JwtSecret:   secret,
 				FilesDir:    path.Join("/data", installer.App, "files"),
 				TemplateDir: path.Join(installer.AppDir, "samples"),
+				OIDC: web.OIDCConfig{
+					Issuer:       os.Getenv("ONLYOFFICE_OIDC_ISSUER"),
+					ClientID:     os.Getenv("ONLYOFFICE_OIDC_CLIENT_ID"),
+					ClientSecret: oidcSecret,
+					RedirectURL:  baseURL + installer.AppOIDCRedirect,
+					BaseURL:      baseURL,
+				},
 			}
-			s, err := web.NewServer(cfg, nil, logger)
+			s, err := web.NewServer(context.Background(), cfg, nil, logger)
 			if err != nil {
 				return err
 			}

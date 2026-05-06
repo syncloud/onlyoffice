@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"crypto/tls"
 	"embed"
 	"encoding/json"
@@ -21,32 +22,43 @@ type Config struct {
 	JwtSecret   string
 	FilesDir    string
 	TemplateDir string
+	OIDC        OIDCConfig
 }
 
 type Server struct {
-	cfg    Config
-	files  *FileStore
-	assets fs.FS
-	logger *zap.Logger
+	cfg      Config
+	files    *FileStore
+	assets   fs.FS
+	logger   *zap.Logger
+	auth     *OIDCAuth
+	sessions *SessionStore
 }
 
-func NewServer(cfg Config, assets fs.FS, logger *zap.Logger) (*Server, error) {
+func NewServer(ctx context.Context, cfg Config, assets fs.FS, logger *zap.Logger) (*Server, error) {
 	files, err := NewFileStore(cfg.FilesDir, cfg.TemplateDir)
 	if err != nil {
 		return nil, err
 	}
-	return &Server{cfg: cfg, files: files, assets: assets, logger: logger}, nil
+	sessions := NewSessionStore(sessionTTL)
+	auth, err := NewOIDCAuth(ctx, cfg.OIDC, sessions, logger)
+	if err != nil {
+		return nil, err
+	}
+	return &Server{cfg: cfg, files: files, assets: assets, logger: logger, auth: auth, sessions: sessions}, nil
 }
 
 func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/files", s.handleFiles)
-	mux.HandleFunc("/api/files/", s.handleFile)
-	mux.HandleFunc("/api/secret", s.handleSecret)
-	mux.HandleFunc("/api/editor-config", s.handleEditorConfig)
+	mux.HandleFunc("/oidc/start", s.auth.StartHandler)
+	mux.HandleFunc("/oidc/callback", s.auth.CallbackHandler)
+	mux.HandleFunc("/oidc/logout", s.auth.LogoutHandler)
 	mux.HandleFunc("/api/file/", s.handleFileBytes)
 	mux.HandleFunc("/api/callback/", s.handleCallback)
-	mux.Handle("/", s.spaHandler())
+	mux.Handle("/api/files", s.auth.JSONMiddleware(http.HandlerFunc(s.handleFiles)))
+	mux.Handle("/api/files/", s.auth.JSONMiddleware(http.HandlerFunc(s.handleFile)))
+	mux.Handle("/api/secret", s.auth.JSONMiddleware(http.HandlerFunc(s.handleSecret)))
+	mux.Handle("/api/editor-config", s.auth.JSONMiddleware(http.HandlerFunc(s.handleEditorConfig)))
+	mux.Handle("/", s.auth.Middleware(s.spaHandler()))
 	return mux
 }
 
@@ -66,11 +78,13 @@ func (s *Server) Listen() error {
 }
 
 func (s *Server) user(r *http.Request) string {
-	u := r.Header.Get("Remote-User")
-	if u == "" {
-		u = "user"
+	if sess, ok := SessionFromContext(r.Context()); ok && sess.Username != "" {
+		return sess.Username
 	}
-	return u
+	if u := r.Header.Get("Remote-User"); u != "" {
+		return u
+	}
+	return "user"
 }
 
 type errResp struct {
