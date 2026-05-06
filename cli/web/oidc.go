@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -33,15 +34,22 @@ type OIDCConfig struct {
 }
 
 type OIDCAuth struct {
-	cfg      OIDCConfig
-	provider *oidc.Provider
-	verifier *oidc.IDTokenVerifier
-	oauth2   *oauth2.Config
-	sessions *SessionStore
-	logger   *zap.Logger
+	cfg        OIDCConfig
+	provider   *oidc.Provider
+	verifier   *oidc.IDTokenVerifier
+	oauth2     *oauth2.Config
+	sessions   *SessionStore
+	logger     *zap.Logger
+	httpClient *http.Client
 }
 
 func NewOIDCAuth(ctx context.Context, cfg OIDCConfig, sessions *SessionStore, logger *zap.Logger) (*OIDCAuth, error) {
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+	ctx = oidc.ClientContext(ctx, httpClient)
 	provider, err := oidc.NewProvider(ctx, cfg.Issuer)
 	if err != nil {
 		return nil, fmt.Errorf("oidc discovery: %w", err)
@@ -55,12 +63,13 @@ func NewOIDCAuth(ctx context.Context, cfg OIDCConfig, sessions *SessionStore, lo
 	}
 	verifier := provider.Verifier(&oidc.Config{ClientID: cfg.ClientID})
 	return &OIDCAuth{
-		cfg:      cfg,
-		provider: provider,
-		verifier: verifier,
-		oauth2:   oauth2cfg,
-		sessions: sessions,
-		logger:   logger,
+		cfg:        cfg,
+		provider:   provider,
+		verifier:   verifier,
+		oauth2:     oauth2cfg,
+		sessions:   sessions,
+		logger:     logger,
+		httpClient: httpClient,
 	}, nil
 }
 
@@ -183,7 +192,8 @@ func (a *OIDCAuth) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "missing code: "+errParam, http.StatusBadRequest)
 		return
 	}
-	token, err := a.oauth2.Exchange(r.Context(), code,
+	exchangeCtx := oidc.ClientContext(r.Context(), a.httpClient)
+	token, err := a.oauth2.Exchange(exchangeCtx, code,
 		oauth2.SetAuthURLParam("code_verifier", blob.CodeVerifier),
 	)
 	if err != nil {
@@ -196,7 +206,7 @@ func (a *OIDCAuth) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no id_token", http.StatusBadGateway)
 		return
 	}
-	idToken, err := a.verifier.Verify(r.Context(), rawID)
+	idToken, err := a.verifier.Verify(exchangeCtx, rawID)
 	if err != nil {
 		a.logger.Warn("id_token verification failed", zap.Error(err))
 		http.Error(w, "id_token verification failed", http.StatusBadGateway)
