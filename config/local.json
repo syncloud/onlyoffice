@@ -1,0 +1,89 @@
+{
+    "log": {
+        "filePath": "{{ .DataDir }}/config/log4js.json"
+    },
+    "FileConverter": {
+        "converter": {
+            "fontDir": "{{ .AppDir }}/documentserver/var-www/onlyoffice/documentserver/fonts",
+            "presentationThemesDir": "{{ .AppDir }}/documentserver/var-www/onlyoffice/documentserver/sdkjs/slide/themes",
+            "x2tPath": "{{ .AppDir }}/documentserver/var-www/onlyoffice/documentserver/server/FileConverter/bin/x2t",
+            "docbuilderPath": "{{ .AppDir }}/documentserver/var-www/onlyoffice/documentserver/server/FileConverter/bin/docbuilder"
+        }
+    },
+    "storage": {
+        "fs": {
+            "folderPath": "{{ .DataDir }}/cache/files"
+        }
+    },
+    "runtimeConfig": {
+        "filePath": "{{ .DataDir }}/cache/runtime.json"
+    },
+    "wopi": {
+        "htmlTemplate": "{{ .AppDir }}/documentserver/var-www/onlyoffice/documentserver/web-apps/apps/api/wopi"
+    },
+    "rabbitmq": {
+        "url": "amqp://guest:guest@127.0.0.1:{{ .RabbitPort }}",
+        "socketOptions": {}
+    },
+    "queue": {
+        "type": "rabbitmq",
+        "visibilityTimeout": 300,
+        "retentionPeriod": 900
+    },
+    "services": {
+        "CoAuthoring": {
+            "server": {
+                "port": "{{ .DataDir }}/run/docservice.sock",
+                "workerpercpu": 1,
+                "savetimeoutdelay": 5000
+            },
+            "sql": {
+                "type": "postgres",
+                "dbHost": "{{ .DatabaseDir }}",
+                "dbPort": 5432,
+                "dbName": "{{ .DbName }}",
+                "dbUser": "{{ .DbUser }}",
+                "dbPass": "{{ .DbPassword }}"
+            },
+            "redis": {
+                "name": "redis",
+                "options": {
+                    "path": "{{ .DataDir }}/run/redis.sock"
+                }
+            },
+            "token": {
+                "enable": {
+                    "request": {
+                        "inbox": true,
+                        "outbox": true
+                    },
+                    "browser": true
+                },
+                "inbox": {
+                    "header": "Authorization"
+                },
+                "outbox": {
+                    "header": "Authorization"
+                },
+                "session": {
+                    "algorithm": "HS256",
+                    "expires": "5m"
+                }
+            },
+            "secret": {
+                "inbox": {
+                    "string": "{{ .JwtSecret }}"
+                },
+                "outbox": {
+                    "string": "{{ .JwtSecret }}"
+                },
+                "session": {
+                    "string": "{{ .JwtSecret }}"
+                }
+            },
+            "requestDefaults": {
+                "rejectUnauthorized": false
+            }
+        }
+    }
+}

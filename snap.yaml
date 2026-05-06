@@ -1,0 +1,131 @@
+name: onlyoffice
+summary: ONLYOFFICE Document Server
+description: Online office suite document server providing collaborative editing of text documents, spreadsheets and presentations.
+grade: stable
+confinement: strict
+
+apps:
+
+  postgresql:
+    user: onlyoffice
+    command: bin/service.postgresql.sh
+    daemon: forking
+    plugs:
+      - network
+      - network-bind
+    restart-condition: always
+    restart-delay: 10s
+    start-timeout: 600s
+    before: [docservice, converter]
+
+  redis:
+    user: onlyoffice
+    command: bin/service.redis.sh
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+    restart-condition: always
+    restart-delay: 10s
+    start-timeout: 600s
+    before: [docservice, converter]
+
+  rabbitmq:
+    user: onlyoffice
+    command: bin/service.rabbitmq.sh
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+    restart-condition: always
+    restart-delay: 10s
+    start-timeout: 600s
+    before: [docservice, converter]
+
+  docservice:
+    user: onlyoffice
+    command: bin/service.docservice.sh
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+    restart-condition: always
+    restart-delay: 10s
+    start-timeout: 600s
+    before: [nginx]
+
+  web:
+    user: onlyoffice
+    command: bin/service.web.sh
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+    restart-condition: always
+    restart-delay: 10s
+    start-timeout: 600s
+    before: [nginx]
+
+  converter:
+    user: onlyoffice
+    command: bin/service.converter.sh
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+    restart-condition: always
+    restart-delay: 10s
+    start-timeout: 600s
+
+  nginx:
+    user: onlyoffice
+    command: bin/service.nginx.sh
+    daemon: simple
+    plugs:
+      - network
+      - network-bind
+    restart-condition: always
+    restart-delay: 10s
+    start-timeout: 600s
+
+  cli:
+    command: bin/cli
+    plugs:
+      - network
+      - network-bind
+
+  psql:
+    command: bin/psql.sh
+
+  pgdumpall:
+    command: bin/pg_dumpall.sh
+
+  storage-change:
+    command: bin/cli storage-change
+    plugs:
+      - network
+      - network-bind
+
+  access-change:
+    command: bin/cli access-change
+    plugs:
+      - network
+      - network-bind
+
+  backup-pre-stop:
+    command: bin/cli backup-pre-stop
+    plugs:
+      - network
+      - network-bind
+
+  restore-pre-start:
+    command: bin/cli restore-pre-start
+    plugs:
+      - network
+      - network-bind
+
+  restore-post-start:
+    command: bin/cli restore-post-start
+    plugs:
+      - network
+      - network-bind

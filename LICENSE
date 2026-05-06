@@ -1,0 +1,13 @@
+                    GNU GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
+
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+This Syncloud package wraps ONLYOFFICE Document Server (AGPL-3.0).
+Upstream license: https://github.com/ONLYOFFICE/DocumentServer/blob/master/LICENSE.txt
+
+Packaging glue (cli/, bin/, config/, nginx/, postgresql/, redis/, rabbitmq/, test/)
+is released under GPL-3.0-or-later. Full text:
+https://www.gnu.org/licenses/gpl-3.0.txt

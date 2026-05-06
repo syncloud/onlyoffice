@@ -1,0 +1,13 @@
+build/
+artifact/
+*.snap
+package.name
+version
+.claude/
+web/node_modules/
+web/dist/
+web/e2e/node_modules/
+web/e2e/test-results/
+web/e2e/playwright-report/
+cli/web/assets/index.html
+cli/web/assets/assets/
