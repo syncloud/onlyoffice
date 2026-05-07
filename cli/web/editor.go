@@ -51,7 +51,7 @@ type Customization struct {
 	ForceSave  bool `json:"forcesave"`
 }
 
-func BuildEditorConfig(secret, baseURL, file, user, viewport string) (map[string]any, error) {
+func BuildEditorConfig(secret, baseURL, file, user, viewport string, mtimeNanos int64) (map[string]any, error) {
 	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(file), "."))
 	docType := DocType(file)
 
@@ -60,7 +60,7 @@ func BuildEditorConfig(secret, baseURL, file, user, viewport string) (map[string
 		return nil, err
 	}
 
-	docKey := docKey(file)
+	docKey := docKey(file, mtimeNanos)
 	fileURL := fmt.Sprintf("%s/api/file/%s?token=%s", baseURL, file, fileToken)
 	cbURL := fmt.Sprintf("%s/api/callback/%s?token=%s", baseURL, file, fileToken)
 
@@ -100,7 +100,7 @@ func BuildEditorConfig(secret, baseURL, file, user, viewport string) (map[string
 	return cfg, nil
 }
 
-func docKey(file string) string {
-	h := sha1.Sum([]byte(fmt.Sprintf("%s:%d", file, time.Now().Unix()/60)))
+func docKey(file string, mtimeNanos int64) string {
+	h := sha1.Sum([]byte(fmt.Sprintf("%s:%d", file, mtimeNanos)))
 	return hex.EncodeToString(h[:])
 }

@@ -4,10 +4,12 @@ import { shoot } from '../helpers/screenshot'
 import {
   captureEditorConfig, focusCanvas, waitForAutosave, waitEditorRendered,
   fetchSavedFile, readZipEntry, fileSize,
+  expectNoVersionChangedBanner, readActiveCellViaClipboard,
 } from '../helpers/editor'
 
 test.describe('round-trip: xlsx', () => {
-  test.skip('numbers + formula compute, autosave, reopen', async ({ page }, testInfo) => {
+  test('numbers + formula compute, autosave, reopen', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'OO Community blocks mobile editing')
     await login(page)
     const cfgPromise = captureEditorConfig(page)
     await page.getByTestId('new-doc-button').click()
@@ -35,5 +37,8 @@ test.describe('round-trip: xlsx', () => {
     await page.getByText(cfg.document.title).first().click()
     await waitEditorRendered(page)
     await shoot(page, testInfo, 'roundtrip-xlsx-reopen')
+    await expectNoVersionChangedBanner(page)
+    const cellA1 = await readActiveCellViaClipboard(page)
+    expect(cellA1).toContain(phrase)
   })
 })

@@ -13,12 +13,12 @@ test.describe('Nextcloud-style integration (no Authelia session)', () => {
     expect(apijs.status()).toBe(200)
   })
 
-  test.skip('UI paths require auth_request (302 to Authelia)', async () => {
+  test('JSON API endpoints return 401 without session', async () => {
     const ctx = await request.newContext({ ignoreHTTPSErrors: true, maxRedirects: 0 })
-    const r1 = await ctx.get(`https://${appDomain}/api/files`)
-    expect([302, 401]).toContain(r1.status())
-    const r2 = await ctx.get(`https://${appDomain}/api/secret`)
-    expect([302, 401]).toContain(r2.status())
+    for (const p of ['/api/files', '/api/secret', '/api/editor-config']) {
+      const r = await ctx.get(`https://${appDomain}${p}`)
+      expect(r.status(), `${p} should be 401`).toBe(401)
+    }
   })
 
   test('file fetch requires JWT, accepts valid one without Authelia session', async () => {

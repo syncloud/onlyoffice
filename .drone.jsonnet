@@ -1,6 +1,5 @@
 local name = 'onlyoffice';
 local version = '9.3.1.2';
-local source_branch = 'master';
 local node = '20-bookworm-slim';
 local postgresql = '16-bookworm';
 local redis = '7.4.6';
@@ -51,7 +50,7 @@ local build(arch) = [{
       name: 'upstream',
       image: 'node:' + node,
       commands: [
-        './upstream/build.sh ' + source_branch,
+        './upstream/build.sh ' + version,
       ],
     },
     {

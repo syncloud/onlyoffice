@@ -9,10 +9,18 @@ WORK=${DIR}/../build/upstream
 mkdir -p ${DST}/server ${WORK}
 
 apt-get update -qq
-apt-get install -y -qq wget xz-utils
+apt-get install -y -qq wget xz-utils ca-certificates
 
-BRANCH=$1
-URL=https://github.com/ONLYOFFICE/server/archive/refs/heads/${BRANCH}.tar.gz
+IMAGE_VERSION=$1
+META_TAG=$(echo "${IMAGE_VERSION}" | awk -F. '{printf "v%s.%s.%s", $1, $2, $3}')
+SUBMODULE_API="https://api.github.com/repos/ONLYOFFICE/DocumentServer/contents/server?ref=${META_TAG}"
+echo "resolving server submodule pin: image=${IMAGE_VERSION} meta-tag=${META_TAG}"
+META_JSON=$(wget -q -O - "${SUBMODULE_API}")
+SOURCE_REF=$(echo "${META_JSON}" | node -e 'let s=""; process.stdin.on("data",c=>s+=c); process.stdin.on("end",()=>process.stdout.write(JSON.parse(s).sha))')
+[ -n "${SOURCE_REF}" ] || { echo "could not resolve server submodule sha for ${META_TAG}"; echo "${META_JSON}"; exit 1; }
+echo "server source ref: ${SOURCE_REF}"
+
+URL=https://github.com/ONLYOFFICE/server/archive/${SOURCE_REF}.tar.gz
 
 cd ${WORK}
 wget --tries=3 "${URL}" -O server.tar.gz

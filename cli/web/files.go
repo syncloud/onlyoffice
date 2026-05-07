@@ -36,6 +36,14 @@ func (fs *FileStore) safe(name string) (string, error) {
 	return filepath.Join(fs.Root, name), nil
 }
 
+func (fs *FileStore) Stat(name string) (os.FileInfo, error) {
+	p, err := fs.safe(name)
+	if err != nil {
+		return nil, err
+	}
+	return os.Stat(p)
+}
+
 func (fs *FileStore) List() ([]FileInfo, error) {
 	entries, err := os.ReadDir(fs.Root)
 	if err != nil {
