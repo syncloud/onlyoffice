@@ -4,6 +4,7 @@ import { shoot } from '../helpers/screenshot'
 import {
   captureEditorConfig, focusCanvas, waitForAutosave, waitEditorRendered,
   fetchSavedFile, readZipEntry, fileSize,
+  expectNoVersionChangedBanner, readActiveCellViaClipboard,
 } from '../helpers/editor'
 
 test.describe('round-trip: xlsx', () => {
@@ -36,5 +37,8 @@ test.describe('round-trip: xlsx', () => {
     await page.getByText(cfg.document.title).first().click()
     await waitEditorRendered(page)
     await shoot(page, testInfo, 'roundtrip-xlsx-reopen')
+    await expectNoVersionChangedBanner(page)
+    const cellA1 = await readActiveCellViaClipboard(page)
+    expect(cellA1).toContain(phrase)
   })
 })

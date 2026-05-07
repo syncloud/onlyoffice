@@ -4,6 +4,7 @@ import { shoot } from '../helpers/screenshot'
 import {
   captureEditorConfig, focusCanvas, waitForAutosave, waitEditorRendered,
   fetchSavedFile, readZipEntry, fileSize,
+  expectNoVersionChangedBanner,
 } from '../helpers/editor'
 
 test.describe('round-trip: pptx', () => {
@@ -32,5 +33,6 @@ test.describe('round-trip: pptx', () => {
     await page.getByText(cfg.document.title).first().click()
     await waitEditorRendered(page)
     await shoot(page, testInfo, 'roundtrip-pptx-reopen')
+    await expectNoVersionChangedBanner(page)
   })
 })

@@ -66,3 +66,17 @@ export async function fetchSavedFile(page: Page, fileUrl: string): Promise<Buffe
   expect(r.ok(), `fetch ${abs} failed: ${r.status()}`).toBe(true)
   return Buffer.from(await r.body())
 }
+
+export async function expectNoVersionChangedBanner(page: Page) {
+  const banner = page.frameLocator('iframe[name="frameEditor"]').getByText('Version changed')
+  await expect(banner).toBeHidden({ timeout: 5000 })
+}
+
+export async function readActiveCellViaClipboard(page: Page): Promise<string> {
+  await focusCanvas(page)
+  await page.keyboard.press('Control+Home')
+  await page.waitForTimeout(300)
+  await page.keyboard.press('Control+c')
+  await page.waitForTimeout(500)
+  return page.evaluate(() => navigator.clipboard.readText())
+}
