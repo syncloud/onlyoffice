@@ -171,7 +171,12 @@ func (s *Server) handleEditorConfig(w http.ResponseWriter, r *http.Request) {
 	if viewport == "" {
 		viewport = "desktop"
 	}
-	cfg, err := BuildEditorConfig(s.cfg.JwtSecret, s.cfg.BaseURL, file, s.user(r), viewport)
+	info, err := s.files.Stat(file)
+	if err != nil {
+		writeErr(w, 404, err.Error())
+		return
+	}
+	cfg, err := BuildEditorConfig(s.cfg.JwtSecret, s.cfg.BaseURL, file, s.user(r), viewport, info.ModTime().UnixNano())
 	if err != nil {
 		writeErr(w, 500, err.Error())
 		return
