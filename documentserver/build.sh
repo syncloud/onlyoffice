@@ -18,7 +18,11 @@ cp -r ${DS}/fonts               ${DST}/fonts
 cp -r ${DS}/document-formats    ${DST}/document-formats
 cp -r ${DS}/npm                 ${DST}/npm
 
-cp -r ${DS}/server ${DST}/server
+mkdir -p ${DST}/server/FileConverter
+cp -r ${DS}/server/FileConverter/bin ${DST}/server/FileConverter/bin
+
+mkdir -p ${DST}/server/Common
+cp -r ${DS}/server/Common/config ${DST}/server/Common/config
 
 cp -r /etc/onlyoffice ${BUILD_DIR}/etc-onlyoffice
 
@@ -29,7 +33,7 @@ sed -i 's/{{HASH_POSTFIX}}/syncloud/g' ${API}
 UPSTREAM_VERSION=$(sed -nE "s/.*\\* Version: (([0-9]+\\.){2}[0-9]+).*/\\1/p" ${API}.tpl | head -1)
 [ -n "${UPSTREAM_VERSION}" ] || { echo "could not extract version from api.js.tpl"; exit 1; }
 COMMONDEFINES=${DST}/server/Common/sources/commondefines.js
-[ -f "${COMMONDEFINES}" ] || { echo "${COMMONDEFINES} missing"; exit 1; }
+[ -f "${COMMONDEFINES}" ] || { echo "${COMMONDEFINES} missing — upstream step must run first"; exit 1; }
 echo "patching commondefines.js buildVersion -> ${UPSTREAM_VERSION}"
 sed -i "s/^const buildVersion = '[^']*';/const buildVersion = '${UPSTREAM_VERSION}';/" ${COMMONDEFINES}
 grep "^const buildVersion" ${COMMONDEFINES}
