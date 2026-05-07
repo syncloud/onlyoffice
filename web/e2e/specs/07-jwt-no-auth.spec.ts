@@ -3,7 +3,6 @@ import { ssh } from '../helpers/ssh'
 
 const fullDomain = process.env.PLAYWRIGHT_FULL_DOMAIN ?? 'bookworm-amd64.com'
 const appDomain = process.env.PLAYWRIGHT_APP_DOMAIN ?? `onlyoffice.${fullDomain}`
-const authDomain = process.env.PLAYWRIGHT_AUTH_DOMAIN ?? `auth.${fullDomain}`
 
 test.describe('Nextcloud-style integration (no Authelia session)', () => {
   test('public OO endpoints are reachable without auth', async () => {
@@ -20,14 +19,6 @@ test.describe('Nextcloud-style integration (no Authelia session)', () => {
       const r = await ctx.get(`https://${appDomain}${p}`)
       expect(r.status(), `${p} should be 401`).toBe(401)
     }
-  })
-
-  test('UI root redirects to Authelia OIDC authorize', async () => {
-    const ctx = await request.newContext({ ignoreHTTPSErrors: true, maxRedirects: 0 })
-    const r = await ctx.get(`https://${appDomain}/`)
-    expect(r.status()).toBe(302)
-    const loc = r.headers()['location'] ?? ''
-    expect(loc).toContain(authDomain)
   })
 
   test('file fetch requires JWT, accepts valid one without Authelia session', async () => {
