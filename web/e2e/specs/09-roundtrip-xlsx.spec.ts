@@ -7,7 +7,8 @@ import {
 } from '../helpers/editor'
 
 test.describe('round-trip: xlsx', () => {
-  test.skip('numbers + formula compute, autosave, reopen', async ({ page }, testInfo) => {
+  test('numbers + formula compute, autosave, reopen', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'OO Community blocks mobile editing')
     await login(page)
     const cfgPromise = captureEditorConfig(page)
     await page.getByTestId('new-doc-button').click()
