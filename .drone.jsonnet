@@ -143,8 +143,8 @@ local build(arch) = [{
       image: 'node:' + node,
       commands: [
         'cd web',
-        'npm install --no-audit --no-fund',
-        'npm run build',
+        'timeout 300 npm ci --prefer-offline --no-audit --no-fund',
+        'timeout 300 npm run build',
       ],
     },
     {
