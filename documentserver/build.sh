@@ -17,6 +17,7 @@ cp -r ${DS}/dictionaries        ${DST}/dictionaries
 cp -r ${DS}/fonts               ${DST}/fonts
 cp -r ${DS}/document-formats    ${DST}/document-formats
 cp -r ${DS}/npm                 ${DST}/npm
+cp -r ${DS}/core-fonts          ${DST}/core-fonts
 
 mkdir -p ${DST}/server/FileConverter
 cp -r ${DS}/server/FileConverter/bin ${DST}/server/FileConverter/bin
@@ -41,14 +42,22 @@ grep "^const buildVersion" ${COMMONDEFINES}
 mkdir -p ${DST}/Data/custom-fonts ${DST}/sdkjs/common/Images ${DST}/fonts
 LD_LIBRARY_PATH=${DS}/server/FileConverter/bin \
 ${DS}/server/tools/allfontsgen \
-    --input=${DS}/core-fonts \
+    --input=${DST}/core-fonts \
     --allfonts-web=${DST}/sdkjs/common/AllFonts.js \
     --allfonts=${DST}/server/FileConverter/bin/AllFonts.js \
     --images=${DST}/sdkjs/common/Images \
     --selection=${DST}/server/FileConverter/bin/font_selection.bin \
     --output-web=${DST}/fonts \
-    --use-system=true \
+    --use-system=false \
     --use-system-user-fonts=false
+
+# AllFonts.js now embeds absolute paths from --input. At snap runtime
+# the documentserver tree lives under /snap/onlyoffice/current/, not
+# under /drone/src/build/snap/. Rewrite the paths to the snap location.
+SNAP_DST=/snap/onlyoffice/current/documentserver/var-www/onlyoffice/documentserver
+sed -i "s,${DST},${SNAP_DST},g" \
+    ${DST}/sdkjs/common/AllFonts.js \
+    ${DST}/server/FileConverter/bin/AllFonts.js
 
 ${DIR}/../bin/install-patchelf.sh
 PT_INTERP=/snap/onlyoffice/current/node/lib/oo-arch/oo-ld
