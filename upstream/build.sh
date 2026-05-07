@@ -11,8 +11,8 @@ mkdir -p ${DST}/server ${WORK}
 apt-get update -qq
 apt-get install -y -qq wget xz-utils
 
-BRANCH=$1
-URL=https://github.com/ONLYOFFICE/server/archive/refs/heads/${BRANCH}.tar.gz
+REF=$1
+URL=https://github.com/ONLYOFFICE/server/archive/${REF}.tar.gz
 
 cd ${WORK}
 wget --tries=3 "${URL}" -O server.tar.gz

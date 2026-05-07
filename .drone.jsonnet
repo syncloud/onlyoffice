@@ -1,6 +1,9 @@
 local name = 'onlyoffice';
 local version = '9.3.1.2';
-local source_branch = 'master';
+// Server source commit must match `version`: it's the `server` submodule
+// pin from ONLYOFFICE/DocumentServer at tag v9.3.1. Bumping `version`
+// without this pin lands a sdkjs/x2t and a server JS that disagree.
+local source_ref = '34adaeeb4cc1e032a5cf188924880a25546dc67c';
 local node = '20-bookworm-slim';
 local postgresql = '16-bookworm';
 local redis = '7.4.6';
@@ -51,7 +54,7 @@ local build(arch) = [{
       name: 'upstream',
       image: 'node:' + node,
       commands: [
-        './upstream/build.sh ' + source_branch,
+        './upstream/build.sh ' + source_ref,
       ],
     },
     {
