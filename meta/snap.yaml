@@ -1,6 +1,6 @@
 name: onlyoffice
-summary: ONLYOFFICE Document Server
-description: Online office suite document server providing collaborative editing of text documents, spreadsheets and presentations.
+summary: ONLYOFFICE Docs
+description: Online office suite for documents, spreadsheets and presentations
 grade: stable
 confinement: strict
 
