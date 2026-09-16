@@ -229,7 +229,6 @@ local build(arch) = [{
   trigger: {
     event: [
       'push',
-      'pull_request',
     ],
   },
   services: [
