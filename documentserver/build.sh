@@ -31,7 +31,18 @@ API=${DST}/web-apps/apps/api/documents/api.js
 cp ${API}.tpl ${API}
 sed -i 's/{{HASH_POSTFIX}}/syncloud/g' ${API}
 
-UPSTREAM_VERSION=$(sed -nE "s/.*\\* Version: (([0-9]+\\.){2}[0-9]+).*/\\1/p" ${API}.tpl | head -1)
+WEB_APPS=${DST}/web-apps/apps
+for dep in Window:Window DataViewItem:DataView BaseView:BaseView; do
+    cls=${dep%%:*}
+    mod=${dep##*:}
+    grep -rlZE '^define\(\[\], *function' --include=*.js ${WEB_APPS} \
+        | xargs -0 -r grep -lZE "= *Common\.UI\.${cls}\.extend" \
+        | xargs -0 -r sed -i -E "s|^define\(\[\], *function|define(['common/main/lib/component/${mod}'], function|"
+done
+UNDECLARED=$(grep -rlE '^define\(\[\], *function' --include=*.js ${WEB_APPS} | xargs -r grep -lE '= *Common\.UI\.(BaseView|Window|DataViewItem)\.extend' || true)
+[ -z "${UNDECLARED}" ] || { echo "web-apps modules still missing base dependency: ${UNDECLARED}"; exit 1; }
+
+UPSTREAM_VERSION=$(sed -nE "/DocEditor\\.version = function/{n;s/.*return '(([0-9]+\\.){2}[0-9]+)'.*/\\1/p;}" ${API}.tpl | head -1)
 [ -n "${UPSTREAM_VERSION}" ] || { echo "could not extract version from api.js.tpl"; exit 1; }
 COMMONDEFINES=${DST}/server/Common/sources/commondefines.js
 [ -f "${COMMONDEFINES}" ] || { echo "${COMMONDEFINES} missing — upstream step must run first"; exit 1; }

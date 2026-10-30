@@ -10,6 +10,8 @@ from syncloudlib.http import wait_for_rest
 from syncloudlib.integration.hosts import add_host_alias
 from syncloudlib.integration.installer import local_install
 
+from test import snapd
+
 DIR = dirname(__file__)
 TMP_DIR = '/tmp/syncloud'
 
@@ -59,12 +61,12 @@ def module_setup(request, device, app_dir, artifact_dir):
 def test_start(module_setup, device, device_host, app, domain):
     add_host_alias(app, device_host, domain)
     device.run_ssh('date', retries=100)
+    snapd.settle(device)
     device.run_ssh('mkdir -p {0}'.format(TMP_DIR))
 
 
 @pytest.mark.flaky(retries=50, delay=10)
 def test_activate_device(device):
-    device.run_ssh('snap set system refresh.hold=$(date -d "+90 days" -u +%Y-%m-%dT%H:%M:%SZ)')
     device.run_ssh('rm -f /var/snap/platform/current/syncloud.crt', throw=False)
     response = retry(device.activate_custom)
     assert response.status_code == 200, response.text
@@ -91,7 +93,7 @@ def test_no_redirect_loop_when_2fa_required(device, domain, app_domain, device_u
     auth_domain = 'auth.{0}'.format(domain)
 
     response = device.session.post(
-        'https://{0}/rest/settings/2fa'.format(domain),
+        'https://{0}/rest/2fa'.format(domain),
         json={'enabled': True}, verify=False, timeout=120,
     )
     assert response.status_code == 200, 'enable 2fa: {0}'.format(response.text)
@@ -130,7 +132,7 @@ def test_no_redirect_loop_when_2fa_required(device, domain, app_domain, device_u
             )
     finally:
         device.session.post(
-            'https://{0}/rest/settings/2fa'.format(domain),
+            'https://{0}/rest/2fa'.format(domain),
             json={'enabled': False}, verify=False, timeout=120,
         )
 

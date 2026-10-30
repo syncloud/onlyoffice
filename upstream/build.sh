@@ -28,7 +28,7 @@ ls -la server.tar.gz
 mkdir -p server-src
 tar -xzf server.tar.gz -C server-src --strip-components=1
 
-for COMPONENT in DocService FileConverter Common SpellChecker Metrics; do
+for COMPONENT in DocService FileConverter Common Metrics; do
     mkdir -p ${DST}/server/${COMPONENT}
     cp -r ${WORK}/server-src/${COMPONENT}/* ${DST}/server/${COMPONENT}/
 done
