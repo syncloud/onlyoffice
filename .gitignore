@@ -11,3 +11,4 @@ web/e2e/test-results/
 web/e2e/playwright-report/
 cli/web/assets/index.html
 cli/web/assets/assets/
+__pycache__/

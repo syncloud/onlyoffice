@@ -1,17 +1,21 @@
 local name = 'onlyoffice';
-local version = '9.3.1.2';
+local version = '10.0.0';
 local node = '20-bookworm-slim';
 local postgresql = '16-bookworm';
 local redis = '7.4.6';
 local rabbitmq = '4.1.1';
 local nginx = '1.29.3-alpine3.22';
 local debian = 'bookworm-slim';
-local platform = '26.04.10';
+local platform = '26.10.02';
 local python = '3.12-slim-bookworm';
 local go = '1.25';
 local store_publisher = 'stable-346';
 local distros = ['bookworm', 'buster'];
 local archs = ['amd64', 'arm64'];
+
+local platform_image(distro) = 'syncloud/platform-' + distro + ':' + platform;
+
+local snapd_hold = "mkdir -p /etc/systemd/system/snapd.service.d && printf '[Service]\\nExecStartPost=/bin/sh -c \"/usr/bin/snap set system refresh.hold=2099-01-01T00:00:00Z\"\\n' > /etc/systemd/system/snapd.service.d/disable-refresh.conf && exec /sbin/init";
 
 local build(arch) = [{
   kind: 'pipeline',
@@ -39,7 +43,7 @@ local build(arch) = [{
   ] + [
     {
       name: 'node test ' + distro,
-      image: 'syncloud/platform-' + distro + '-' + arch + ':' + platform,
+      image: platform_image(distro),
       commands: [
         './node/test.sh',
       ],
@@ -63,7 +67,7 @@ local build(arch) = [{
   ] + [
     {
       name: 'documentserver test ' + distro,
-      image: 'syncloud/platform-' + distro + '-' + arch + ':' + platform,
+      image: platform_image(distro),
       commands: [
         './documentserver/test.sh',
       ],
@@ -80,7 +84,7 @@ local build(arch) = [{
   ] + [
     {
       name: 'postgresql test ' + distro,
-      image: 'syncloud/platform-' + distro + '-' + arch + ':' + platform,
+      image: platform_image(distro),
       commands: [
         './postgresql/test.sh',
       ],
@@ -97,7 +101,7 @@ local build(arch) = [{
   ] + [
     {
       name: 'redis test ' + distro,
-      image: 'syncloud/platform-' + distro + '-' + arch + ':' + platform,
+      image: platform_image(distro),
       commands: [
         './redis/test.sh',
       ],
@@ -114,7 +118,7 @@ local build(arch) = [{
   ] + [
     {
       name: 'rabbitmq test ' + distro,
-      image: 'syncloud/platform-' + distro + '-' + arch + ':' + platform,
+      image: platform_image(distro),
       commands: [
         './rabbitmq/test.sh',
       ],
@@ -131,7 +135,7 @@ local build(arch) = [{
   ] + [
     {
       name: 'nginx test ' + distro,
-      image: 'syncloud/platform-' + distro + '-' + arch + ':' + platform,
+      image: platform_image(distro),
       commands: [
         './nginx/test.sh',
       ],
@@ -167,16 +171,14 @@ local build(arch) = [{
       name: 'test ' + distro,
       image: 'python:' + python,
       commands: [
-        'cd test',
-        './deps.sh',
-        'py.test -x -s test.py --distro=' + distro + ' --ver=$DRONE_BUILD_NUMBER --app=' + name,
+        './ci/test.sh ' + distro + ' ' + name,
       ],
     }
     for distro in distros
   ] + [
     {
       name: 'e2e',
-      image: 'mcr.microsoft.com/playwright:v1.48.2-jammy',
+      image: 'mcr.microsoft.com/playwright:v1.59.1-jammy',
       environment: {
         PLAYWRIGHT_FULL_DOMAIN: 'bookworm.com',
         PLAYWRIGHT_APP_DOMAIN: 'onlyoffice.bookworm.com',
@@ -185,13 +187,7 @@ local build(arch) = [{
         PLAYWRIGHT_ARTIFACT_DIR: '/drone/src/artifact',
       },
       commands: [
-        'apt-get update -qq && apt-get install -y -qq sshpass openssh-client unzip',
-        'IP=$(getent hosts onlyoffice.bookworm.com | awk \'{print $1}\')',
-        'echo "$IP bookworm.com auth.bookworm.com" >> /etc/hosts',
-        'cd web/e2e',
-        'npm ci --no-audit --no-fund',
-        'npx playwright test --project=desktop',
-        'npx playwright test --project=mobile',
+        './ci/e2e.sh',
       ],
     },
   ] + [
@@ -234,8 +230,9 @@ local build(arch) = [{
   services: [
     {
       name: name + '.' + distro + '.com',
-      image: 'syncloud/platform-' + distro + '-' + arch + ':' + platform,
+      image: platform_image(distro),
       privileged: true,
+      entrypoint: ['/bin/sh', '-c', snapd_hold],
       volumes: [
         { name: 'dbus', path: '/var/run/dbus' },
         { name: 'dev', path: '/dev' },
