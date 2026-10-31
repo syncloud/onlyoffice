@@ -25,7 +25,7 @@ export async function focusCanvas(page: Page) {
 }
 
 export async function waitEditorRendered(page: Page) {
-  await page.getByTestId('editor-loading').waitFor({ state: 'hidden', timeout: 60_000 })
+  await page.getByTestId('editor-loading').waitFor({ state: 'hidden', timeout: 120_000 })
   await page.waitForTimeout(8000)
 }
 

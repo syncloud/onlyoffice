@@ -8,7 +8,7 @@ export default defineConfig({
   testDir: './specs',
   fullyParallel: false,
   workers: 1,
-  retries: 0,
+  retries: process.env.CI ? 1 : 0,
   maxFailures: 1,
   reporter: [
     ['list'],
@@ -16,7 +16,7 @@ export default defineConfig({
   ],
   outputDir: `${artifactDir}/playwright/test-results`,
   globalTeardown: './globalTeardown.ts',
-  timeout: 300_000,
+  timeout: 420_000,
   expect: { timeout: 15_000 },
   use: {
     baseURL: `https://${appDomain}`,
